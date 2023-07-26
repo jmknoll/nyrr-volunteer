@@ -13,39 +13,11 @@ headers = {
     "User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:52.0) Gecko/20100101 Firefox/52.0",
 }
 
-# Run against the target url until it returns true
-# filter down the list to remove non 9+1 opportunities
-# filter down the list to remove medical opportunities
 # save remaining to send email
 
 # alert for an unexpected results
 # rate-limit
 # IP blocked
-
-
-# extract role title and event from volunteer opportunity
-def extract_title(opp):
-    title = opp.select_one(".role_listing__title")
-    event = opp.select_one(".role_listing__event")
-    hr_title = title.contents[0].strip()
-    hr_event = event.contents[0].strip()
-    return (hr_title, hr_event)
-
-
-def is_available(opp):
-    # is a medical volunteer opportunity
-    med = opp.select_one(".medical_icon")
-    if med is not None:
-        return False
-    # is not a 9+1 opportunity
-    free_run = opp.select_one(".tag.tag--no")
-    if free_run is not None:
-        return False
-    else:
-        return True
-
-
-# save results to dynamo db
 
 
 limit = 8
@@ -58,7 +30,6 @@ total_runs = 0
 descriptions = []
 
 while not last_page:
-    url = f"https://www.nyrr.org/api/feature/volunteer/FilterVolunteerOpportunities?available_only=true&itemId=3EB6F0CC-0D76-4BAF-A894-E2AB244CEB44&limit={limit}&offset={offset}&totalItemLoaded={total_loaded}"
     res = requests.get(url, headers)
     # probably check for errors here
     data = res.json()
