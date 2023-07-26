@@ -1,6 +1,8 @@
 import requests
 from bs4 import BeautifulSoup
 
+from util import Status
+
 
 class NYRRInterface:
     def __init__(self):
@@ -10,22 +12,7 @@ class NYRRInterface:
         self.total_loaded = 8
         self.last_page = False
 
-        # self.headers = {
-        #     "Access-Control-Allow-Origin": "*",
-        #     "Access-Control-Allow-Methods": "GET",
-        #     "Access-Control-Allow-Headers": "Content-Type",
-        #     "Access-Control-Max-Age": "3600",
-        #     "User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:52.0) Gecko/20100101 Firefox/52.0",
-        # }
-
-        self.url = "https://www.nyrr.org/api/feature/volunteer/FilterVolunteerOpportunities?available_only=true&itemId=3EB6F0CC-0D76-4BAF-A894-E2AB244CEB44&limit={limit}&offset={offset}&totalItemLoaded={total_loaded}"
-
-    def find_opportunities(self):
-        available_runs = []
-        total_runs = 0
-        descriptions = []
-
-        headers = {
+        self.headers = {
             "Access-Control-Allow-Origin": "*",
             "Access-Control-Allow-Methods": "GET",
             "Access-Control-Allow-Headers": "Content-Type",
@@ -33,12 +20,28 @@ class NYRRInterface:
             "User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:52.0) Gecko/20100101 Firefox/52.0",
         }
 
+        self.base_url = "https://www.nyrr.org/api/feature/volunteer/FilterVolunteerOpportunities?available_only=true&itemId=3EB6F0CC-0D76-4BAF-A894-E2AB244CEB44"
+
+    def find_opportunities(self):
+        available_runs = []
+        total_runs = 0
+        descriptions = []
+
         while not self.last_page:
-            res = requests.get(self.url, headers)
+            full_url = f"{self.base_url}&limit={self.limit}&offset={self.offset}&totalItemLoaded={self.total_loaded}"
+            res = requests.get(full_url, self.headers)
             # probably check for errors here
-            print(f"Response status code: {res.status_code}")
-            print(f"Response headers: {res.headers}")
-            return
+
+            print(
+                f"Running request. Status: {res.status_code}, Last page: {self.last_page}"
+            )
+            print(f"Request url: {full_url}")
+
+            if res.status_code != 200:
+                return {
+                    "status": Status.ERROR,
+                    "message": "error retrieving opportunities from site",
+                }
 
             data = res.json()
 
@@ -57,10 +60,16 @@ class NYRRInterface:
         if len(available_runs) > 0:
             for opp in available_runs:
                 descriptions.append(self.extract_title(opp))
-            return descriptions
-            # send email or text with options
+            return {
+                "status": Status.SUCCESS,
+                "message": "volunteer opportunities available",
+                "data": descriptions,
+            }
         else:
-            return f"No available runs at this time. Total runs: {total_runs}"
+            return {
+                "status": Status.NO_RESULTS,
+                "message": f"no volunteer opportunities available. Total runs: {total_runs}",
+            }
 
     # extract role title and event from volunteer opportunity
     def extract_title(self, opp):
@@ -71,7 +80,7 @@ class NYRRInterface:
         return (hr_title, hr_event)
 
     # infer avialability and relevance of opportunity
-    def is_available(opp):
+    def is_available(self, opp):
         # is a medical volunteer opportunity
         med = opp.select_one(".medical_icon")
         if med is not None:
