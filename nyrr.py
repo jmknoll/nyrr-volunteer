@@ -2,6 +2,7 @@ import requests
 from bs4 import BeautifulSoup
 
 from util import Status
+from logger import Logger
 
 
 class NYRRInterface:
@@ -22,6 +23,8 @@ class NYRRInterface:
 
         self.base_url = "https://www.nyrr.org/api/feature/volunteer/FilterVolunteerOpportunities?available_only=true&itemId=3EB6F0CC-0D76-4BAF-A894-E2AB244CEB44"
 
+        self.log = Logger().logger
+
     def find_opportunities(self):
         available_runs = []
         total_runs = 0
@@ -32,10 +35,10 @@ class NYRRInterface:
             res = requests.get(full_url, self.headers)
             # probably check for errors here
 
-            print(
+            self.log.debug(
                 f"Running request. Status: {res.status_code}, Last page: {self.last_page}"
             )
-            print(f"Request url: {full_url}")
+            self.log.debug(f"Request url: {full_url}")
 
             if res.status_code != 200:
                 return {
